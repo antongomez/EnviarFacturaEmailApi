@@ -110,7 +110,3 @@ curl -X POST "https://tu-dominio.com/api/3/enviarFacturaCliente/42" \
 Este plugin se distribuye bajo la licencia [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.html) (LGPL-3.0).
 
 Consulta los ficheros [`COPYING.LESSER`](COPYING.LESSER) (LGPL) y [`COPYING`](COPYING) (GPL, que la LGPL complementa) para el texto completo.
-
-## Autor
-
-Anton Gomez
