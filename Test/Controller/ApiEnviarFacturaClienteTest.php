@@ -1,0 +1,89 @@
+<?php
+/**
+ * This file is part of EnviarFacturaEmailApi plugin for FacturaScripts
+ * Copyright (C) 2026 Anton Gomez
+ */
+
+namespace FacturaScripts\Test\Plugins\EnviarFacturaEmailApi\Controller;
+
+use FacturaScripts\Core\Tools;
+use FacturaScripts\Plugins\EnviarFacturaEmailApi\Controller\ApiEnviarFacturaCliente;
+use FacturaScripts\Test\Traits\LogErrorsTrait;
+use FacturaScripts\Test\Traits\RandomDataTrait;
+use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
+
+final class ApiEnviarFacturaClienteTest extends TestCase
+{
+    use RandomDataTrait;
+    use LogErrorsTrait;
+
+    private function controller(): ApiEnviarFacturaCliente
+    {
+        return new ApiEnviarFacturaCliente('ApiEnviarFacturaCliente', '/api/3/enviarFacturaCliente/1');
+    }
+
+    private function call(ApiEnviarFacturaCliente $controller, string $method, array $args)
+    {
+        $ref = new ReflectionMethod($controller, $method);
+        $ref->setAccessible(true);
+        return $ref->invokeArgs($controller, $args);
+    }
+
+    public function testResolveRecipientFromCustomer(): void
+    {
+        $invoice = $this->getRandomCustomerInvoice();
+        $this->assertTrue($invoice->exists(), 'invoice-not-saved');
+
+        // asignamos un email al cliente
+        $customer = $invoice->getSubject();
+        $customer->email = 'cliente.test@example.com';
+        $this->assertTrue($customer->save(), 'customer-not-saved');
+
+        $recipient = $this->call($this->controller(), 'resolveRecipient', [$invoice]);
+        $this->assertSame('cliente.test@example.com', $recipient['email']);
+
+        // limpieza
+        $this->assertTrue($invoice->delete());
+        $this->assertTrue($customer->getDefaultAddress()->delete());
+        $this->assertTrue($customer->delete());
+    }
+
+    public function testResolveRecipientEmptyWhenNoEmail(): void
+    {
+        $invoice = $this->getRandomCustomerInvoice();
+        $customer = $invoice->getSubject();
+
+        // ni cliente ni contacto tienen email
+        $recipient = $this->call($this->controller(), 'resolveRecipient', [$invoice]);
+        $this->assertSame('', $recipient['email']);
+
+        // limpieza
+        $this->assertTrue($invoice->delete());
+        $this->assertTrue($customer->getDefaultAddress()->delete());
+        $this->assertTrue($customer->delete());
+    }
+
+    public function testBuildSubjectAndBodyNotEmpty(): void
+    {
+        $invoice = $this->getRandomCustomerInvoice();
+        $customer = $invoice->getSubject();
+
+        [$subject, $body] = $this->call($this->controller(), 'buildSubjectAndBody', [$invoice]);
+        $this->assertNotEmpty($subject, 'empty-subject');
+        $this->assertNotEmpty($body, 'empty-body');
+
+        // el código de la factura debe aparecer en el asunto
+        $this->assertStringContainsString($invoice->codigo, $subject);
+
+        // limpieza
+        $this->assertTrue($invoice->delete());
+        $this->assertTrue($customer->getDefaultAddress()->delete());
+        $this->assertTrue($customer->delete());
+    }
+
+    protected function tearDown(): void
+    {
+        $this->logErrors();
+    }
+}

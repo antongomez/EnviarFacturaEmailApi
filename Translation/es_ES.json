@@ -1,0 +1,5 @@
+{
+    "no-recipient-email": "La factura no tiene un email de destinatario válido (factura, contacto ni cliente).",
+    "pdf-generation-error": "No se pudo generar el PDF de la factura.",
+    "missing-id-parameter": "Falta el identificador de la factura."
+}
