@@ -1,5 +1,13 @@
 # EnviarFacturaEmailApi
 
+<p align="center">
+  <img src="https://img.shields.io/badge/FacturaScripts-2025+-2670c9?style=for-the-badge&logoColor=white" alt="FacturaScripts 2025+">
+  <img src="https://img.shields.io/badge/PHP-8.0+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.0+">
+  <img src="https://img.shields.io/github/license/antongomez/EnviarFacturaEmailApi?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/badge/REST-API-orange?style=for-the-badge&logo=fastapi&logoColor=white" alt="REST API">
+  <a href="https://github.com/antongomez/EnviarFacturaEmailApi/releases/latest"><img src="https://img.shields.io/github/v/release/antongomez/EnviarFacturaEmailApi?style=for-the-badge&logo=github&logoColor=white" alt="Latest Release"></a>
+</p>
+
 Plugin para [FacturaScripts](https://www.facturascripts.com/) que añade un endpoint a la API REST para **enviar facturas de cliente por email con su PDF adjunto**.
 
 El envío reutiliza la configuración de la propia instancia de FacturaScripts: la identidad SMTP, la plantilla de correo `sendmail-FacturaCliente`, el historial de emails y el sistema de exportación de PDF. No depende de servicios externos.
