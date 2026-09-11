@@ -93,13 +93,19 @@ class ApiEnviarFacturaCliente extends ApiController
         }
 
         // 8. componemos el asunto y el cuerpo (plantilla sendmail-FacturaCliente o traducciones)
-        [$subject, $body] = $this->buildSubjectAndBody($factura);
+        [$subject, $body, $notificationName] = $this->buildSubjectAndBody($factura);
 
         // 9. enviamos
         $mail->to($recipient['email'], $recipient['name'])
             ->subject($subject)
             ->body($body)
             ->addAttachment($pdfPath, 'factura_' . $factura->codigo . '.pdf');
+
+        // etiquetamos el email con la notificación de origen para el historial;
+        // el método notification() no existe en cores anteriores a 2026.7
+        if (null !== $notificationName && method_exists($mail, 'notification')) {
+            $mail->notification($notificationName);
+        }
 
         $ok = $mail->send();
 
@@ -198,6 +204,7 @@ class ApiEnviarFacturaCliente extends ApiController
     /**
      * Construye asunto y cuerpo reutilizando la notificación sendmail-FacturaCliente
      * (misma lógica que SendMail::loadDataDefault) o, en su defecto, las traducciones.
+     * Devuelve [asunto, cuerpo, nombre de la notificación usada o null].
      */
     protected function buildSubjectAndBody(FacturaCliente $factura): array
     {
@@ -225,13 +232,13 @@ class ApiEnviarFacturaCliente extends ApiController
 
             $subject = str_replace($shortCodes, $shortValues, $notification->subject);
             $body = str_replace($shortCodes, $shortValues, $notification->body);
-            return [$subject, $body];
+            return [$subject, $body, $notification->name];
         }
 
         // sin notificación: usamos las traducciones del core
         $subject = Tools::trans('invoice-email-subject', ['%code%' => $factura->codigo]);
         $body = Tools::trans('invoice-email-text', ['%code%' => $factura->codigo]);
-        return [$subject, $body];
+        return [$subject, $body, null];
     }
 
     /**

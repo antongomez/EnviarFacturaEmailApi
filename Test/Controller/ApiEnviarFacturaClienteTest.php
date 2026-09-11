@@ -7,6 +7,7 @@
 namespace FacturaScripts\Test\Plugins\EnviarFacturaEmailApi\Controller;
 
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Dinamic\Model\EmailNotification;
 use FacturaScripts\Plugins\EnviarFacturaEmailApi\Controller\ApiEnviarFacturaCliente;
 use FacturaScripts\Test\Traits\LogErrorsTrait;
 use FacturaScripts\Test\Traits\RandomDataTrait;
@@ -69,12 +70,20 @@ final class ApiEnviarFacturaClienteTest extends TestCase
         $invoice = $this->getRandomCustomerInvoice();
         $customer = $invoice->getSubject();
 
-        [$subject, $body] = $this->call($this->controller(), 'buildSubjectAndBody', [$invoice]);
+        [$subject, $body, $notificationName] = $this->call($this->controller(), 'buildSubjectAndBody', [$invoice]);
         $this->assertNotEmpty($subject, 'empty-subject');
         $this->assertNotEmpty($body, 'empty-body');
 
         // el código de la factura debe aparecer en el asunto
         $this->assertStringContainsString($invoice->codigo, $subject);
+
+        // el tercer elemento identifica la notificación usada (o null si se usaron traducciones)
+        $notification = new EmailNotification();
+        if ($notification->load('sendmail-FacturaCliente') && $notification->enabled) {
+            $this->assertSame('sendmail-FacturaCliente', $notificationName, 'notification-name-not-returned');
+        } else {
+            $this->assertNull($notificationName, 'notification-name-should-be-null');
+        }
 
         // limpieza
         $this->assertTrue($invoice->delete());
