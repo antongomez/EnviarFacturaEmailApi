@@ -1,7 +1,7 @@
 # EnviarFacturaEmailApi
 
 <p align="center">
-  <img src="https://img.shields.io/badge/FacturaScripts-2025+-2670c9?style=for-the-badge&logoColor=white" alt="FacturaScripts 2025+">
+  <img src="https://img.shields.io/badge/FacturaScripts-2025.2+-2670c9?style=for-the-badge&logoColor=white" alt="FacturaScripts 2025.2+">
   <img src="https://img.shields.io/badge/PHP-8.0+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.0+">
   <img src="https://img.shields.io/github/license/antongomez/EnviarFacturaEmailApi?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/REST-API-orange?style=for-the-badge&logo=fastapi&logoColor=white" alt="REST API">
@@ -25,7 +25,7 @@ El envío reutiliza la configuración de la propia instancia de FacturaScripts: 
 
 ## Requisitos
 
-- FacturaScripts 2025 o superior (`min_version = 2025`).
+- FacturaScripts 2025.2 o superior (`min_version = 2025.2`).
 - Email configurado en FacturaScripts (identidad SMTP en *Panel de control → Email*).
 
 ## Instalación
