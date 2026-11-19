@@ -19,6 +19,7 @@ El envío reutiliza la configuración de la propia instancia de FacturaScripts: 
 - Resuelve el destinatario siguiendo la misma jerarquía que el envío manual de la interfaz:
   email forzado por parámetro → email de la factura → contacto de facturación → cliente.
 - Usa el asunto y cuerpo de la notificación `sendmail-FacturaCliente` si existe; en caso contrario, recurre a las traducciones del core.
+- Admite un asunto y un cuerpo propios en la llamada (texto o HTML, con los mismos shortcodes), por ejemplo para un correo de confirmación de pedido en el idioma del cliente, sin tocar la plantilla que usa el envío manual.
 - Idempotente: si la factura ya tiene fecha de envío (`femail`) no se reenvía, salvo que se fuerce.
 - Marca la factura como enviada tras el envío correcto (igual que el controlador `SendMail` de la interfaz).
 - Atribuye el remitente al usuario asociado a la API key cuando es posible.
@@ -61,6 +62,10 @@ Token: TU_API_KEY
 | `idfactura` | URL | Sí | Identificador (`idfactura`) de la factura de cliente a enviar. |
 | `email` | body | No | Fuerza el email del destinatario en lugar de resolverlo desde la factura/contacto/cliente. |
 | `force` | body | No | Si vale `1`, reenvía aunque la factura ya tenga fecha de envío (`femail`). |
+| `subject` | body | No | Asunto propio en lugar del de la plantilla `sendmail-FacturaCliente`. |
+| `body` | body | No | Cuerpo propio (texto plano o HTML) en lugar del de la plantilla. |
+
+`subject` y `body` son independientes: lo que no se envíe sale de la plantilla (o de las traducciones del core). En ambos se sustituyen los shortcodes de la plantilla: `{code}`, `{name}`, `{date}`, `{total}`, `{number2}`, `{contact_name}` y `{contact_surname}`. Cuando se usa texto propio, el email no se etiqueta en el historial con la notificación `sendmail-FacturaCliente`.
 
 ### Ejemplo
 
@@ -69,6 +74,15 @@ curl -X POST "https://tu-dominio.com/api/3/enviarFacturaCliente/42" \
   -H "Token: TU_API_KEY" \
   -d "force=1" \
   -d "email=cliente@ejemplo.com"
+```
+
+Con asunto y cuerpo propios:
+
+```bash
+curl -X POST "https://tu-dominio.com/api/3/enviarFacturaCliente/42" \
+  -H "Token: TU_API_KEY" \
+  --data-urlencode "subject=Hemos recibido tu pedido · Factura {code}" \
+  --data-urlencode "body=<p>Hola {name}, gracias por tu compra.</p>"
 ```
 
 ### Respuestas

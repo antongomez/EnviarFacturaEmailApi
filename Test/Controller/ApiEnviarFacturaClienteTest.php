@@ -91,6 +91,32 @@ final class ApiEnviarFacturaClienteTest extends TestCase
         $this->assertTrue($customer->delete());
     }
 
+    public function testBuildSubjectAndBodyWithCustomText(): void
+    {
+        $invoice = $this->getRandomCustomerInvoice();
+        $customer = $invoice->getSubject();
+
+        // asunto y cuerpo propios, con shortcodes sustituidos
+        [$subject, $body, $notificationName] = $this->call(
+            $this->controller(),
+            'buildSubjectAndBody',
+            [$invoice, 'Pedido web · {code}', '<p>Hola {name}</p>']
+        );
+        $this->assertSame('Pedido web · ' . $invoice->codigo, $subject);
+        $this->assertSame('<p>Hola ' . $invoice->nombrecliente . '</p>', $body);
+        $this->assertNull($notificationName, 'custom-text-should-not-be-tagged');
+
+        // solo asunto propio: el cuerpo sale de la plantilla o de las traducciones
+        [$subject, $body] = $this->call($this->controller(), 'buildSubjectAndBody', [$invoice, 'Solo asunto', '']);
+        $this->assertSame('Solo asunto', $subject);
+        $this->assertNotEmpty($body, 'empty-default-body');
+
+        // limpieza
+        $this->assertTrue($invoice->delete());
+        $this->assertTrue($customer->getDefaultAddress()->delete());
+        $this->assertTrue($customer->delete());
+    }
+
     protected function tearDown(): void
     {
         $this->logErrors();

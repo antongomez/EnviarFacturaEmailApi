@@ -28,6 +28,9 @@ use FacturaScripts\Dinamic\Model\User;
  * Parámetros opcionales (body):
  *  - email: fuerza el destinatario en lugar de resolverlo desde la factura/cliente/contacto.
  *  - force: si vale 1, reenvía aunque la factura ya tenga fecha de envío (femail).
+ *  - subject: asunto propio en lugar del de la plantilla sendmail-FacturaCliente.
+ *  - body: cuerpo propio (texto o HTML) en lugar del de la plantilla.
+ *    Ambos admiten los mismos shortcodes que la plantilla ({code}, {name}, {date}...).
  */
 class ApiEnviarFacturaCliente extends ApiController
 {
@@ -92,8 +95,13 @@ class ApiEnviarFacturaCliente extends ApiController
             return;
         }
 
-        // 8. componemos el asunto y el cuerpo (plantilla sendmail-FacturaCliente o traducciones)
-        [$subject, $body, $notificationName] = $this->buildSubjectAndBody($factura);
+        // 8. componemos el asunto y el cuerpo: los del llamante si los envía y, para lo que
+        // falte, la plantilla sendmail-FacturaCliente o las traducciones
+        [$subject, $body, $notificationName] = $this->buildSubjectAndBody(
+            $factura,
+            trim((string)$this->request->request->get('subject', '')),
+            trim((string)$this->request->request->get('body', ''))
+        );
 
         // 9. enviamos
         $mail->to($recipient['email'], $recipient['name'])
@@ -202,11 +210,37 @@ class ApiEnviarFacturaCliente extends ApiController
     }
 
     /**
-     * Construye asunto y cuerpo reutilizando la notificación sendmail-FacturaCliente
-     * (misma lógica que SendMail::loadDataDefault) o, en su defecto, las traducciones.
-     * Devuelve [asunto, cuerpo, nombre de la notificación usada o null].
+     * Construye asunto y cuerpo. Un asunto o cuerpo propio (parámetros subject/body) tiene
+     * prioridad; lo que falte sale de la notificación sendmail-FacturaCliente (misma lógica
+     * que SendMail::loadDataDefault) o, en su defecto, de las traducciones del core.
+     * Los shortcodes se sustituyen también en el texto propio.
+     * Devuelve [asunto, cuerpo, nombre de la notificación usada o null]: null si no se usó
+     * ninguna notificación o si se sustituyó alguna de sus partes.
      */
-    protected function buildSubjectAndBody(FacturaCliente $factura): array
+    protected function buildSubjectAndBody(FacturaCliente $factura, string $customSubject = '', string $customBody = ''): array
+    {
+        [$shortCodes, $shortValues] = $this->shortCodes($factura);
+        $subject = str_replace($shortCodes, $shortValues, $customSubject);
+        $body = str_replace($shortCodes, $shortValues, $customBody);
+        $notificationName = null;
+
+        if ('' === $subject || '' === $body) {
+            [$defaultSubject, $defaultBody, $defaultName] = $this->defaultSubjectAndBody($factura, $shortCodes, $shortValues);
+            if ('' === $subject && '' === $body) {
+                $notificationName = $defaultName;
+            }
+            $subject = '' === $subject ? $defaultSubject : $subject;
+            $body = '' === $body ? $defaultBody : $body;
+        }
+
+        return [$subject, $body, $notificationName];
+    }
+
+    /**
+     * Asunto y cuerpo de la notificación sendmail-FacturaCliente o, si no está activa,
+     * de las traducciones del core. Devuelve [asunto, cuerpo, nombre de la notificación o null].
+     */
+    protected function defaultSubjectAndBody(FacturaCliente $factura, array $shortCodes, array $shortValues): array
     {
         $notification = new EmailNotification();
         $where = [
@@ -214,22 +248,6 @@ class ApiEnviarFacturaCliente extends ApiController
             Where::eq('enabled', true),
         ];
         if ($notification->loadWhere($where)) {
-            $shortCodes = ['{code}', '{name}', '{date}', '{total}', '{number2}', '{contact_name}', '{contact_surname}'];
-            $shortValues = [
-                $factura->codigo,
-                $factura->nombrecliente,
-                $factura->fecha,
-                $factura->total,
-                $factura->numero2,
-                '',
-                '',
-            ];
-
-            if (!empty($factura->idcontactofact) && $contacto = Contacto::find($factura->idcontactofact)) {
-                $shortValues[5] = $contacto->nombre;
-                $shortValues[6] = $contacto->apellidos;
-            }
-
             $subject = str_replace($shortCodes, $shortValues, $notification->subject);
             $body = str_replace($shortCodes, $shortValues, $notification->body);
             return [$subject, $body, $notification->name];
@@ -239,6 +257,30 @@ class ApiEnviarFacturaCliente extends ApiController
         $subject = Tools::trans('invoice-email-subject', ['%code%' => $factura->codigo]);
         $body = Tools::trans('invoice-email-text', ['%code%' => $factura->codigo]);
         return [$subject, $body, null];
+    }
+
+    /**
+     * Shortcodes de la plantilla y sus valores para esta factura: [códigos, valores].
+     */
+    protected function shortCodes(FacturaCliente $factura): array
+    {
+        $shortCodes = ['{code}', '{name}', '{date}', '{total}', '{number2}', '{contact_name}', '{contact_surname}'];
+        $shortValues = [
+            $factura->codigo,
+            $factura->nombrecliente,
+            $factura->fecha,
+            $factura->total,
+            $factura->numero2,
+            '',
+            '',
+        ];
+
+        if (!empty($factura->idcontactofact) && $contacto = Contacto::find($factura->idcontactofact)) {
+            $shortValues[5] = $contacto->nombre;
+            $shortValues[6] = $contacto->apellidos;
+        }
+
+        return [$shortCodes, $shortValues];
     }
 
     /**
